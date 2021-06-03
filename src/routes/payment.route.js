@@ -4,10 +4,11 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 router.post('/checkout', async (req, res) => {
+    console.log(process.env.CLIENT_URL);
     try {
         const session = await stripe.checkout.sessions.create({
-            success_url: `${process.env.PROD_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.PROD_URL}/payment/failed`,
+            success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL}/payment/failed`,
             payment_method_types: ['card'],
             line_items: [req.body.order],
             mode: 'payment'
