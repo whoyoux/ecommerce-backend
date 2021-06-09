@@ -9,10 +9,9 @@ const checkCoupon = async (couponId) => {
 };
 
 const checkout = async (req, res) => {
-    console.log(req.body);
+    //console.log(req.body);
 
-    //TODO: Check coupon code before pushing to stripe.
-
+    //TODO: Zamiast produktow trzeba bedzie przesylac tylko ID produktow i brac cale obiekty z bazy danych!
     try {
         let sessionData = {
             success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -31,7 +30,7 @@ const checkout = async (req, res) => {
 
             for (const couponObj of req.body.coupons) {
                 const { amount_off } = await checkCoupon(couponObj.coupon);
-                console.log(amount_off);
+                //console.log(amount_off);
 
                 if (amount_off > 0 && req.body.order.amount <= amount_off)
                     break;
@@ -50,7 +49,7 @@ const checkout = async (req, res) => {
     } catch (err) {
         if (err.param === 'discounts[0][coupon]')
             return res.status(400).json({ err: "Can't find this coupon!" });
-        console.log(err);
+        console.log(`Error with coupon! Error: ${err}`);
         return res.status(404).json(err);
     }
 };
