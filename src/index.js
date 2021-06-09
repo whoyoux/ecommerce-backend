@@ -10,7 +10,7 @@ const ProductModel = require('./models/product.model.js');
 const paymentRoutes = require('./routes/payment.route.js');
 const productsRoutes = require('./routes/products.route.js');
 
-const {getProduct} = require('./controllers/products.controller.js')
+const { getProduct } = require('./controllers/products.controller.js');
 
 const connectToDatabase = async () => {
     try {
@@ -22,11 +22,10 @@ const connectToDatabase = async () => {
         });
         console.log(`App connected to database!`);
 
-
         // const product = new ProductModel({
         //     name: "test",
         //     description: "test desc",
-        //     price: 11,
+        //     amount: 11,
         //     images: [
         //         {url: "http://google.com"}
         //     ]
@@ -34,11 +33,11 @@ const connectToDatabase = async () => {
         // await product.save()
 
         // console.log(await getProduct('60bfac7e6e73f3287881141d'))
-    } catch(err) {
+    } catch (err) {
         console.error(`Can't connect to database! Abort program!`);
         return;
     }
-}
+};
 
 connectToDatabase();
 
@@ -52,4 +51,3 @@ app.use('/payment', paymentRoutes);
 app.use('/products', productsRoutes);
 
 app.listen(PORT, console.log(`App is listening on: ${PORT}`));
-

@@ -1,5 +1,6 @@
 const data = require('../db/db.json');
 const ProductModel = require('../models/product.model.js');
+const mongoose = require('mongoose');
 
 const getProducts = async (req, res) => {
     try {
@@ -8,6 +9,26 @@ const getProducts = async (req, res) => {
     } catch (err) {
         console.log(`getProducts error! Error: ${err}`);
         res.status(500).send({ error: true, errorMessage: err });
+    }
+};
+
+const getProductsById = async (productIds) => {
+    try {
+        const prepareArray = [];
+
+        productIds.forEach((productId) => {
+            prepareArray.push(mongoose.Types.ObjectId(productId._id));
+        });
+
+        const response = await ProductModel.find({
+            _id: {
+                $in: prepareArray
+            }
+        });
+        return response;
+    } catch (err) {
+        console.log(`getProductsById ${err}`);
+        return { error: true, errorMessage: "Can't find products in DB!" };
     }
 };
 
@@ -47,5 +68,6 @@ const getProduct = async (productId) => {
 module.exports = {
     getProducts,
     getProduct,
+    getProductsById,
     deleteProduct
 };

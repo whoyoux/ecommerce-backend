@@ -1,5 +1,7 @@
 const stripe = require('stripe')(process.env.STRIPE_KEY);
 
+const { getProductsById } = require('../controllers/products.controller.js');
+
 const checkCoupon = async (couponId) => {
     try {
         return await stripe.coupons.retrieve(couponId);
@@ -9,15 +11,36 @@ const checkCoupon = async (couponId) => {
 };
 
 const checkout = async (req, res) => {
-    //console.log(req.body);
-
-    //TODO: Zamiast produktow trzeba bedzie przesylac tylko ID produktow i brac cale obiekty z bazy danych!
     try {
+        const productsFromDB = await getProductsById(req.body.order);
+
+        if (productsFromDB.error) {
+            console.log(productsFromDB.errorMessage);
+            return res
+                .status(404)
+                .send({ error: true, errorMessage: productsFromDB.message });
+        }
+
+        const order = [];
+
+        productsFromDB.forEach((product) => {
+            const foundQuantity = req.body.order.find(
+                (item) => item._id == product._id
+            ).quantity;
+
+            order.push({
+                name: product.name,
+                amount: parseFloat(product.amount) * 100,
+                quantity: foundQuantity,
+                currency: 'PLN'
+            });
+        });
+
         let sessionData = {
             success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.CLIENT_URL}/payment/failed`,
             payment_method_types: ['card'],
-            line_items: [req.body.order],
+            line_items: order,
             mode: 'payment',
             shipping_rates: ['shr_1IzJa1DmuEVpCSVSrJ3sVdKV'],
             shipping_address_collection: {
@@ -32,8 +55,9 @@ const checkout = async (req, res) => {
                 const { amount_off } = await checkCoupon(couponObj.coupon);
                 //console.log(amount_off);
 
-                if (amount_off > 0 && req.body.order.amount <= amount_off)
-                    break;
+                //TODO: Need to change! req.body.order is array!
+                // if (amount_off > 0 && req.body.order.amount <= amount_off)
+                //     break;
 
                 activeCoupons.push({
                     coupon: couponObj.coupon
@@ -42,14 +66,13 @@ const checkout = async (req, res) => {
 
             sessionData.discounts = activeCoupons;
         }
-
+        //console.log(sessionData);
         const session = await stripe.checkout.sessions.create(sessionData);
-
         return res.status(200).json(session);
     } catch (err) {
         if (err.param === 'discounts[0][coupon]')
             return res.status(400).json({ err: "Can't find this coupon!" });
-        console.log(`Error with coupon! Error: ${err}`);
+        console.log(`Error! ${err}`);
         return res.status(404).json(err);
     }
 };
