@@ -10,6 +10,15 @@ const checkCoupon = async (couponId) => {
     }
 };
 
+const sumOfOrder = (order) => {
+    //TODO: Add cost of shipping
+    let sum = 0;
+    order.forEach((item) => {
+        sum += (item.amount / 100) * item.quantity;
+    });
+    return sum;
+};
+
 const checkout = async (req, res) => {
     try {
         const productsFromDB = await getProductsById(req.body.order);
@@ -53,20 +62,20 @@ const checkout = async (req, res) => {
 
             for (const couponObj of req.body.coupons) {
                 const { amount_off } = await checkCoupon(couponObj.coupon);
-                //console.log(amount_off);
+                const formattedAmountOff = amount_off / 100;
 
-                //TODO: Need to change! req.body.order is array!
-                // if (amount_off > 0 && req.body.order.amount <= amount_off)
-                //     break;
+                if (
+                    formattedAmountOff > 0 &&
+                    sumOfOrder(order) <= formattedAmountOff
+                )
+                    break;
 
                 activeCoupons.push({
                     coupon: couponObj.coupon
                 });
             }
-
             sessionData.discounts = activeCoupons;
         }
-        //console.log(sessionData);
         const session = await stripe.checkout.sessions.create(sessionData);
         return res.status(200).json(session);
     } catch (err) {

@@ -23,16 +23,14 @@ const connectToDatabase = async () => {
         console.log(`App connected to database!`);
 
         // const product = new ProductModel({
-        //     name: "test",
-        //     description: "test desc",
-        //     amount: 11,
-        //     images: [
-        //         {url: "http://google.com"}
-        //     ]
-        // })
-        // await product.save()
+        //     name: 'test',
+        //     description: 'test desc',
+        //     amount: 15,
+        //     images: [{ url: 'http://google.com' }]
+        // });
+        // const savedProduct = await product.save();
 
-        // console.log(await getProduct('60bfac7e6e73f3287881141d'))
+        // console.log(await getProduct(savedProduct._id));
     } catch (err) {
         console.error(`Can't connect to database! Abort program!`);
         return;

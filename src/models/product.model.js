@@ -12,7 +12,7 @@ const ProductSchema = new Schema({
         required: true
     },
     amount: {
-        type: Number,
+        type: mongoose.Decimal128,
         required: true
     },
     images: [
