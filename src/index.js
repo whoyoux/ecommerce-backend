@@ -39,7 +39,7 @@ const connectToDatabase = async () => {
 
 connectToDatabase();
 
-app.get('/', (req, res) => res.send('Working 🚀 !!!'));
+app.get('/', (req, res) => res.send('Working 🚀🚀🚀🚀 !!!'));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
