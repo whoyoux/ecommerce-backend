@@ -51,7 +51,7 @@ const checkout = async (req, res) => {
             payment_method_types: ['card'],
             line_items: order,
             mode: 'payment',
-            shipping_rates: ['shr_1IzJa1DmuEVpCSVSrJ3sVdKV'],
+            //shipping_rates: ['shr_1IzJa1DmuEVpCSVSrJ3sVdKV'],
             shipping_address_collection: {
                 allowed_countries: ['PL']
             }
