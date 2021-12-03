@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
+
 require('dotenv').config();
 const PORT = process.env.PORT || 5000;
 
@@ -22,27 +23,40 @@ const connectToDatabase = async () => {
         });
         console.log(`App connected to database!`);
 
-        // const product = new ProductModel({
-        //     name: 'test',
+        // const product1 = new ProductModel({
+        //     name: 'Test1',
         //     description: 'test desc',
-        //     amount: 15,
-        //     images: [{ url: 'http://google.com' }]
+        //     amount: 150,
+        //     images: [
+        //         {
+        //             url: 'https://rdironworks.com/wp-content/uploads/2017/12/dummy-200x200.png'
+        //         }
+        //     ],
+        //     inStock: 2
         // });
-        // const savedProduct = await product.save();
+        // await product1.save();
 
         // console.log(await getProduct(savedProduct._id));
     } catch (err) {
-        console.error(`Can't connect to database! Abort program!`);
+        console.log(`Can't connect to database! Abort program!`);
+        console.error(err.errors);
         return;
     }
 };
 
 connectToDatabase();
 
-app.get('/', (req, res) => res.send('Working 🚀🚀🚀🚀 !!!'));
+app.get('/', (req, res) => res.send('Working 🚀 !!!'));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+//Need raw body for verify signature in webhook
+var rawBodySaver = function (req, res, buf, encoding) {
+    if (buf && buf.length) {
+        req.rawBody = buf.toString(encoding || 'utf8');
+    }
+};
+app.use(express.json({ verify: rawBodySaver }));
+app.use(express.urlencoded({ verify: rawBodySaver, extended: true }));
+app.use(express.raw({ verify: rawBodySaver, type: '*/*' }));
 app.use(cors());
 
 app.use('/payment', paymentRoutes);

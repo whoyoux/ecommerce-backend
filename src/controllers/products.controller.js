@@ -1,4 +1,3 @@
-const data = require('../db/db.json');
 const ProductModel = require('../models/product.model.js');
 const mongoose = require('mongoose');
 
@@ -29,6 +28,19 @@ const getProductsById = async (productIds) => {
     } catch (err) {
         console.log(`getProductsById ${err}`);
         return { error: true, errorMessage: "Can't find products in DB!" };
+    }
+};
+
+const updateQuantityProduct = async (productId, newQuantity) => {
+    try {
+        const response = await ProductModel.findByIdAndUpdate(productId, {
+            inStock: parseInt(newQuantity)
+        });
+        console.log('[UPDATE_QUANTITY]');
+        return response;
+    } catch (err) {
+        console.log(`updateQuantityProduct ${err}`);
+        return { error: true, errorMessage: "Can't update product in DB!" };
     }
 };
 
@@ -65,9 +77,38 @@ const getProduct = async (productId) => {
     }
 };
 
+const getProductByName = async (productName) => {
+    try {
+        const found = await ProductModel.find({ name: productName });
+        if (found === null)
+            return { error: true, errorMessage: `Can't find the product!` };
+        return found[0];
+    } catch (err) {
+        console.log(`getProduct error! Error: ${err}`);
+        return { error: true, errorMessage: err };
+    }
+};
+
+const removeProductQuantityByName = async (products) => {
+    //Need to use for
+    try {
+        for (const product of products) {
+            const item = await getProductByName(product.name);
+            await updateQuantityProduct(
+                item._id,
+                parseInt(item.inStock) - parseInt(product.quantity)
+            );
+        }
+    } catch (err) {
+        console.log(`Error with removeProductQuantityByName ! ${err}`);
+    }
+};
+
 module.exports = {
     getProducts,
     getProduct,
     getProductsById,
-    deleteProduct
+    deleteProduct,
+    updateQuantityProduct,
+    removeProductQuantityByName
 };
