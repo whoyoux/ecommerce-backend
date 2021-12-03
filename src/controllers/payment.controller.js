@@ -118,7 +118,7 @@ const checkout = async (req, res) => {
         // });
 
         const session = await stripe.checkout.sessions.create(sessionData);
-        console.log(session);
+        //console.log(session);
         return res.status(200).json(session);
     } catch (err) {
         if (err.param === 'discounts[0][coupon]')
@@ -192,14 +192,12 @@ const receiveWebhook = async (req, res) => {
                 removeProductQuantityByName(itemsFromOrder);
 
                 //Server will remove item in database by their name so name must be unique
-
-                console.log(order);
                 break;
             default:
                 console.log(`Unhandled event type ${event.type}`);
         }
 
-        console.log(event.type);
+        //console.log(event.type);
 
         // Return a response to acknowledge receipt of the event
         res.json({ received: true });

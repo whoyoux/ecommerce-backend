@@ -33,10 +33,13 @@ const getProductsById = async (productIds) => {
 
 const updateQuantityProduct = async (productId, newQuantity) => {
     try {
-        const response = await ProductModel.findByIdAndUpdate(productId, {
-            inStock: parseInt(newQuantity)
-        });
-        console.log('[UPDATE_QUANTITY]');
+        const response = await ProductModel.findByIdAndUpdate(
+            productId,
+            {
+                $set: { inStock: parseInt(newQuantity) }
+            },
+            { new: true }
+        );
         return response;
     } catch (err) {
         console.log(`updateQuantityProduct ${err}`);
@@ -79,7 +82,7 @@ const getProduct = async (productId) => {
 
 const getProductByName = async (productName) => {
     try {
-        const found = await ProductModel.find({ name: productName });
+        const found = await ProductModel.find({ name: productName }).lean();
         if (found === null)
             return { error: true, errorMessage: `Can't find the product!` };
         return found[0];

@@ -39,7 +39,7 @@ const connectToDatabase = async () => {
         // console.log(await getProduct(savedProduct._id));
     } catch (err) {
         console.log(`Can't connect to database! Abort program!`);
-        console.error(err.errors);
+        console.error(err);
         return;
     }
 };

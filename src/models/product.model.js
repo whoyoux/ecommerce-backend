@@ -5,7 +5,8 @@ const Schema = mongoose.Schema;
 const ProductSchema = new Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     description: {
         type: String,
@@ -26,6 +27,10 @@ const ProductSchema = new Schema({
     createdAt: {
         type: Date,
         default: Date.now()
+    },
+    inStock: {
+        type: Number,
+        required: true
     },
     author: {
         type: String,
