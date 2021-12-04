@@ -7,6 +7,7 @@ require('dotenv').config();
 const PORT = process.env.PORT || 5000;
 
 const ProductModel = require('./models/product.model.js');
+const UserModel = require('./models/user.model.js');
 
 const paymentRoutes = require('./routes/payment.route.js');
 const productsRoutes = require('./routes/products.route.js');
