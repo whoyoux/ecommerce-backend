@@ -11,6 +11,7 @@ const UserModel = require('./models/user.model.js');
 
 const paymentRoutes = require('./routes/payment.route.js');
 const productsRoutes = require('./routes/products.route.js');
+const userRoutes = require('./routes/user.route.js');
 
 const { getProduct } = require('./controllers/products.controller.js');
 
@@ -62,5 +63,6 @@ app.use(cors());
 
 app.use('/payment', paymentRoutes);
 app.use('/products', productsRoutes);
+app.use('/user', userRoutes);
 
 app.listen(PORT, console.log(`App is listening on: ${PORT}`));

@@ -13,7 +13,8 @@ const UserSchema = new Schema({
     },
     email: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     password: {
         type: String,
@@ -43,7 +44,11 @@ const UserSchema = new Schema({
     },
     role: {
         type: String,
-        default: 'user'
+        default: 'User'
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
     }
 });
 
