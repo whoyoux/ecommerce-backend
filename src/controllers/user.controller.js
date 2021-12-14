@@ -2,9 +2,27 @@ const Joi = require('joi');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const sendMail = require('../utils/sendMail');
+
 const UserModel = require('../models/user.model.js');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const createActivationToken = (payload) => {
+    return jwt.sign(payload, process.env.ACTIVATION_TOKEN_SECRET, {
+        expiresIn: '10m'
+    });
+};
+
+const createAccessToken = (payload) => {
+    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: '15m'
+    });
+};
+
+const createRefreshToken = (payload) => {
+    return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: '7d'
+    });
+};
 
 const register = async (req, res) => {
     const { firstName, lastName, email, password: plainPassword } = req.body;
@@ -27,28 +45,66 @@ const register = async (req, res) => {
                 .join(', ')}`
         );
     } else {
+        //Check for users with this email
+        const user = await UserModel.findOne({ email });
+        if (user)
+            return res
+                .status(400)
+                .json({ status: 'error', error: 'Email is already in use' });
+
+        //Everything OK, go register
         const salt = await bcrypt.genSalt(10);
         const password = await bcrypt.hash(plainPassword, salt);
+
         try {
-            const response = await UserModel.create({
+            //! Instead of creating a new user, send mail with special token, after activation user will be created
+
+            const activationToken = createActivationToken({
                 firstName,
                 lastName,
                 email,
                 password
             });
 
-            return res
-                .status(200)
-                .send('User created successfully: ' + response);
+            const URL = `${process.env.CLIENT_URL}/user/activate/${activationToken}`;
+
+            sendMail(email, 'Verify your account', URL);
+            res.status(200).json({
+                status: 'ok',
+                message: 'Register success! Please activate your account.'
+            });
         } catch (err) {
-            if (err.code === 11000) {
-                // duplicate key
-                return res.status(405).json({
-                    status: 'error',
-                    error: 'Username already in use'
-                });
-            }
+            return res.status(405).json({
+                status: 'error',
+                error: err
+            });
         }
+    }
+};
+
+const activateEmail = async (req, res) => {
+    try {
+        const { activationToken } = req.body;
+        const user = await jwt.verify(
+            activationToken,
+            process.env.ACTIVATION_TOKEN_SECRET
+        );
+
+        const { firstName, lastName, email, password } = user;
+
+        await UserModel.create({
+            firstName,
+            lastName,
+            email,
+            password
+        });
+
+        return res.status(200).send('User created successfully.');
+    } catch (err) {
+        return res.status(500).json({
+            status: 'error',
+            error: err
+        });
     }
 };
 
@@ -79,17 +135,48 @@ const login = async (req, res) => {
         if (await bcrypt.compare(password, user.password)) {
             // For now, everything is good.
 
-            const token = jwt.sign(
-                { id: user._id, email: user.email, role: user.role },
-                JWT_SECRET
+            const payload = {
+                id: user._id,
+                email: user.email,
+                role: user.role
+            };
+
+            const token = await jwt.sign(
+                payload,
+                process.env.ACTIVATION_TOKEN_SECRET
             );
 
-            return res.json({ status: 'ok', data: token });
+            res.cookie('refreshtoken', createRefreshToken(payload), {
+                httpOnly: true,
+                path: '/user/refresh_token',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            return res.json({ status: 'ok', data: 'Login success!' });
         } else {
             return res
                 .status(400)
                 .json({ status: 'error', error: 'Invalid email/password' });
         }
+    }
+};
+
+const getAccessToken = async (req, res) => {
+    try {
+        refreshToken = req.cookie.refreshtoken;
+        if (!refreshToken)
+            return res
+                .status(400)
+                .json({ status: 'error', message: 'Please log in!' });
+
+        const user = await jwt.verify(
+            refreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+        const accessToken = createAccessToken(user);
+        res.status(200).json({ status: 'ok', data: accessToken });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err });
     }
 };
 
@@ -118,7 +205,7 @@ const changePassword = async (req, res) => {
         );
     } else {
         try {
-            const user = jwt.verify(token, JWT_SECRET);
+            const user = jwt.verify(token, ACTIVATION_TOKEN_SECRET);
 
             const foundUser = await UserModel.findById(user.id).lean();
 
@@ -168,8 +255,19 @@ const changePassword = async (req, res) => {
     }
 };
 
+const logout = async (req, res) => {
+    try {
+        res.clearCookie('refreshtoken', { path: '/user/refresh_token' });
+        return res.json({ status: 'ok', data: 'Logged out.' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
 module.exports = {
     register,
+    activateEmail,
     login,
-    changePassword
+    changePassword,
+    logout
 };

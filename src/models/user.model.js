@@ -45,10 +45,6 @@ const UserSchema = new Schema({
     role: {
         type: String,
         default: 'User'
-    },
-    isVerified: {
-        type: Boolean,
-        default: false
     }
 });
 
