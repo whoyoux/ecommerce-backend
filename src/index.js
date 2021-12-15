@@ -60,7 +60,11 @@ var rawBodySaver = function (req, res, buf, encoding) {
 //SOME STUFF
 app.use(
     cors({
-        origin: ['http://localhost:3000', 'https://localhost:3000'],
+        origin: [
+            'http://localhost:3000',
+            'https://localhost:3000',
+            'https://ecommerce-beta-three.vercel.app'
+        ],
         allowedHeaders: ['Content-Type'],
         credentials: true,
         preflightContinue: true
