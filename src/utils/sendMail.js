@@ -21,7 +21,7 @@ const sendMail = async (to, message, url) => {
         subject: `${process.env.APP_NAME}`,
         html: `
             <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-            <h2 style="text-align: center; text-transform: uppercase;color: teal;">Welcome to the ${process.env.APP_NAME}.</h2>
+            <h2 style="text-align: center; text-transform: uppercase;color: teal;">${process.env.APP_NAME}.</h2>
             <p>Congratulations! You're almost set to start using ${process.env.APP_NAME}.
                 Just click the button below to validate your email address.
             </p>

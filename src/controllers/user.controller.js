@@ -58,7 +58,6 @@ const register = async (req, res) => {
 
         try {
             //! Instead of creating a new user, send mail with special token, after activation user will be created
-
             const activationToken = createActivationToken({
                 firstName,
                 lastName,
@@ -85,7 +84,7 @@ const register = async (req, res) => {
 const activateEmail = async (req, res) => {
     try {
         const { activationToken } = req.body;
-        const user = await jwt.verify(
+        const user = jwt.verify(
             activationToken,
             process.env.ACTIVATION_TOKEN_SECRET
         );
@@ -137,18 +136,17 @@ const login = async (req, res) => {
 
             const payload = {
                 id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 email: user.email,
                 role: user.role
             };
 
-            const token = await jwt.sign(
-                payload,
-                process.env.ACTIVATION_TOKEN_SECRET
-            );
-
             res.cookie('refreshtoken', createRefreshToken(payload), {
                 httpOnly: true,
                 path: '/user/refresh_token',
+                sameSite: 'None',
+                secure: true,
                 maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
 
@@ -163,95 +161,75 @@ const login = async (req, res) => {
 
 const getAccessToken = async (req, res) => {
     try {
-        refreshToken = req.cookie.refreshtoken;
+        refreshToken = req.cookies.refreshtoken;
+
+        console.log(req.cookies);
+
         if (!refreshToken)
             return res
-                .status(400)
+                .status(401)
                 .json({ status: 'error', message: 'Please log in!' });
 
-        const user = await jwt.verify(
-            refreshToken,
-            process.env.REFRESH_TOKEN_SECRET
-        );
-        const accessToken = createAccessToken(user);
+        const user = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        const payload = {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role
+        };
+
+        const accessToken = createAccessToken(payload);
         res.status(200).json({ status: 'ok', data: accessToken });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err });
     }
 };
 
-const changePassword = async (req, res) => {
-    const {
-        token,
-        email,
-        oldPassword: plainOldPassword,
-        newPassword: plainNewPassword
-    } = req.body;
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await UserModel.findOne({ email: email });
+        if (!user)
+            return res.status(404).json({
+                status: 'error',
+                message: 'This email does not exist!'
+            });
 
-    const schema = Joi.object({
-        email: Joi.string().email().min(4).max(50).required(),
-        oldPassword: Joi.string().min(6).max(35).required(),
-        newPassword: Joi.string().min(6).max(35).required(),
-        token: Joi.string()
-    });
+        const payload = {
+            id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role
+        };
 
-    const { error, value } = schema.validate(req.body);
+        const accessToken = createAccessToken(payload);
+        const url = `${process.env.CLIENT_URL}/user/resetPassword/${accessToken}`;
 
-    if (error) {
-        res.status(404).send(
-            `Validation error: ${error.details
-                .map((x) => x.message)
-                .join(', ')}`
+        sendMail(email, 'Reset your password', url);
+        res.status(200).json({ status: 'ok' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        //TODO: User can only use 1 time same forgot password link per password change
+        const { password } = req.body;
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHashed = await bcrypt.hash(password, salt);
+
+        await UserModel.findOneAndUpdate(
+            { _id: req.user.id },
+            { password: passwordHashed }
         );
-    } else {
-        try {
-            const user = jwt.verify(token, ACTIVATION_TOKEN_SECRET);
-
-            const foundUser = await UserModel.findById(user.id).lean();
-
-            //console.log(foundUser);
-            //const hashedOldPassword = await bcrypt.hash(plainOldPassword, 10);
-            const salt = await bcrypt.genSalt(10);
-            const hashedNewPassword = await bcrypt.hash(plainNewPassword, salt);
-
-            //console.log(hashedOldPassword);
-
-            if (email !== user.email)
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'Email is not associated with this account or token is invalid!'
-                });
-
-            // if (hashedOldPassword !== foundUser.password)
-            //     return res.status(400).json({
-            //         status: 'error',
-            //         error: 'Old password is incorrect!'
-            //     });
-
-            if (!(await bcrypt.compare(plainOldPassword, foundUser.password))) {
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'Old password is incorrect!'
-                });
-            }
-
-            if (await bcrypt.compare(plainNewPassword, foundUser.password))
-                return res.status(400).json({
-                    status: 'error',
-                    error: "Old password can't be equals to the new one!"
-                });
-
-            await UserModel.updateOne(
-                { _id: user.id },
-                { $set: { password: hashedNewPassword } }
-            );
-            return res
-                .status(200)
-                .json({ status: 'ok', data: 'Password changed successfully' });
-        } catch (err) {
-            console.log(err);
-            return res.status(400).json({ status: 'error', error: err });
-        }
+        res.status(200).json({ status: 'ok' });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err });
     }
 };
 
@@ -264,10 +242,23 @@ const logout = async (req, res) => {
     }
 };
 
+const getUserInfo = async (req, res) => {
+    try {
+        console.log(req.user);
+        const user = await UserModel.findById(req.user.id).select('-password');
+        return res.status(200).json({ status: 'ok', data: user });
+    } catch (err) {
+        return res.status(401).json({ status: 'error', message: err });
+    }
+};
+
 module.exports = {
     register,
     activateEmail,
     login,
-    changePassword,
-    logout
+    getAccessToken,
+    forgotPassword,
+    resetPassword,
+    logout,
+    getUserInfo
 };

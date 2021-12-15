@@ -45,7 +45,8 @@ const UserSchema = new Schema({
     role: {
         type: String,
         default: 'User'
-    }
+    },
+    orders: []
 });
 
 const UserModel = mongoose.model('User', UserSchema);
